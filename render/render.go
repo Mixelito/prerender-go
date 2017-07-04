@@ -105,7 +105,7 @@ func (r *chromeRenderer) Render(url string) (*Result, error) {
 	if _, err = tab.Network.Enable(-1, -1); err != nil {
 		return nil, errors.Wrap(err, "enabling tab network failed")
 	}
-	if _, err = tab.Page.Navigate(url, ""); err != nil {
+	if _, err = tab.Page.Navigate(url, "", ""); err != nil {
 		return nil, errors.Wrap(err, "navigating to url failed: "+url)
 	}
 
