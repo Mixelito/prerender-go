@@ -7,7 +7,7 @@ Prerender exposes a simple API that will pre-render webpages and return them. Th
 prerender can be installed from source:
 
 ```
-go get github.com/brycekahle/prerender
+go get github.com/Mixelito/prerender
 ```
 
 ## Prerequisites

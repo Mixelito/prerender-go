@@ -1,4 +1,4 @@
-package: github.com/brycekahle/prerender
+package: github.com/Mixelito/prerender
 import:
 - package: github.com/wirepair/gcd
 - package: github.com/pkg/errors

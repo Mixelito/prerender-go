@@ -10,7 +10,7 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/brycekahle/prerender/render"
+	"github.com/Mixelito/prerender/render"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )

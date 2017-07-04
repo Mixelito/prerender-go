@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/alicebob/miniredis"
-	"github.com/brycekahle/prerender/render"
+	"github.com/Mixelito/prerender/render"
 	"github.com/go-redis/redis"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
