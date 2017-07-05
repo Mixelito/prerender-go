@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 
-	"github.com/Mixelito/prerender/cache"
-	"github.com/Mixelito/prerender/render"
+	"./cache"
+	"./render"
 )
 
 type contextKey string

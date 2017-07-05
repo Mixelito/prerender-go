@@ -11,8 +11,8 @@ import (
 	"context"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/Mixelito/prerender/cache"
-	"github.com/Mixelito/prerender/render"
+	"./cache"
+	"./render"
 	"github.com/felixge/httpsnoop"
 	"github.com/go-redis/redis"
 )
