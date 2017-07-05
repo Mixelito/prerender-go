@@ -7,7 +7,7 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"./render"
+	"github.com/Mixelito/prerender/render"
 )
 
 func handle(w http.ResponseWriter, r *http.Request) {
