@@ -93,7 +93,7 @@ func (r *chromeRenderer) Render(url string) (*Result, error) {
 			err = errors.Wrap(err, "getting network response failed")
 			//return
 		}
-		log.Printf("finish url: %f - %s\n", event.Params.Response.Status, event.Params.Response.Url)
+		//log.Printf("finish url: %f - %s\n", event.Params.Response.Status, event.Params.Response.Url)
 
 		r := event.Params.Response
 		res.Status = int(r.Status)
@@ -101,19 +101,6 @@ func (r *chromeRenderer) Render(url string) (*Result, error) {
 			res.Etag = etag.(string)
 		}
 	})
-
-	/*
-	//requestIntercepted
-	tab.Subscribe("Network.requestIntercepted", func(target *gcd.ChromeTarget, v []byte) {
-		event := &gcdapi.NetworkRequest{}
-		log.Printf("begin url: %s\n", event.Url)
-	})
-
-	tab.Subscribe("Network.requestWillBeSent", func(target *gcd.ChromeTarget, v []byte) {
-		event := &gcdapi.NetworkRequestWillBeSentEvent{}
-		log.Printf("begin url: %s\n", event.Params.Request.Url)
-	})
-	*/
 
 	if _, err = tab.Page.Enable(); err != nil {
 		return nil, errors.Wrap(err, "enabling tab page failed")
@@ -146,7 +133,6 @@ func (r *chromeRenderer) Render(url string) (*Result, error) {
 		"fullstory.com/rec",
 		"navilytics.com/nls_ajax.php",
 		"log.optimizely.com/event",
-
 		"hn.inspectlet.com",
 		"tpc.googlesyndication.com",
 		"partner.googleadservices.com",
@@ -158,9 +144,6 @@ func (r *chromeRenderer) Render(url string) (*Result, error) {
 		"sb.scorecardresearch.com",
 		"www.googletagservices.com",
 		"px.mooba.com.br",
-		"data:",
-		"iosite.reclameaqui.com.br/raichu-io-site-0.0.1-SNAPSHOT/productType/-000000000000001",
-		"iosite.reclameaqui.com.br/raichu-io-site-0.0.1-SNAPSHOT/problemType/-000000000000001",
 		"*.ttf","*.eot","*.woff","*.woff2","*.jpg", "*.png", "*.gif",
 	}
 	if _, err = tab.Network.SetBlockedURLs(blockedUrls); err != nil {
