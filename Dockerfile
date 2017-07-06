@@ -1,4 +1,4 @@
-FROM golang:1.8.1
+FROM golang:1.8.3
 
 # Install deps + add Chrome Stable + purge all the things
 RUN apt-get update && apt-get install -y \
