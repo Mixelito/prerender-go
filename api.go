@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+	"strings"
 
 	log "github.com/Sirupsen/logrus"
 	"./render"
@@ -14,7 +15,10 @@ import (
 func handle(w http.ResponseWriter, r *http.Request) {
 	reqURL := r.URL.String()[1:]
 
-	//remove _escaped_fragment_
+	//if decoded url has two query params from a decoded escaped fragment for hashbang URLs
+	if strings.Index("?", reqURL) != strings.LastIndex("?", reqURL) {
+		reqURL = reqURL[0:strings.LastIndex("?", reqURL)] + "&" + reqURL[strings.LastIndex("?", reqURL)+1:]
+	}
 
 	if reqURL == "" {
 		w.WriteHeader(http.StatusBadRequest)
@@ -28,13 +32,22 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "Invalid URL")
 		return
 	}
-	r.URL.Path = reqURL
 
-	//remove _escaped_fragment_
-	r.URL.Query().Del("_escaped_fragment_")
+	//http://www.example.com?_escaped_fragment_=key1=value1%26key2=value2
+	//to http://www.example.com#!key1=value1&key2=value2
+	// Remove the _escaped_fragment_ query parameter
+	urlQuery := u.Query()
+	if urlQuery != nil && urlQuery["_escaped_fragment_"] != nil {
 
-	log.Printf("page navigate: %s\n", r.URL)
+		if urlQuery.Get("_escaped_fragment_") != "" {
+			u.Path = "#!" + urlQuery.Get("_escaped_fragment_")
+		}
 
+		urlQuery.Del("_escaped_fragment_")
+		u.RawQuery = urlQuery.Encode()
+	}
+
+	r.URL = u
 
 	res, err := getData(r)
 	writeResult(res, err, w)
@@ -50,7 +63,7 @@ func getData(r *http.Request) (*render.Result, error) {
 	}
 
 	renderer := getRenderer(r.Context())
-	res, err := renderer.Render(r.URL.Path)
+	res, err := renderer.Render(r.URL.String())
 	if err == nil && res.Status == http.StatusOK && cache != nil {
 		err = cache.Save(res, 24*time.Hour)
 	}
