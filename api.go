@@ -8,6 +8,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"./render"
+	_ "github.com/Mixelito/prerender/cache"
 )
 
 func handle(w http.ResponseWriter, r *http.Request) {
@@ -32,7 +33,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 
 func getData(r *http.Request) (*render.Result, error) {
 	cache := getCache(r.Context())
-	if cache != nil {
+	if cache != nil && r.Method != "POST" {
 		res, err := cache.Check(r)
 		if err != nil || res != nil {
 			return res, err
