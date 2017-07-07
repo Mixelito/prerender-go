@@ -12,7 +12,9 @@ import (
 )
 
 func handle(w http.ResponseWriter, r *http.Request) {
-	reqURL := r.URL.Path[1:]
+	reqURL := r.URL.String()
+	reqURL = reqURL[1:]
+
 	if reqURL == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(w, "url is required")
