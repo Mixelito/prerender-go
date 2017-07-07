@@ -22,7 +22,7 @@ RUN groupadd -r chrome && useradd -r -g chrome -G audio,video chrome \
 USER chrome
 
 # Point to correct chrome location
-ENV CHROME_PATH google-chrome-unstable
+ENV CHROME_PATH /usr/bin/google-chrome-unstable
 EXPOSE 8000
 
 WORKDIR /go/src/app
