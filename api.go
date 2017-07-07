@@ -12,8 +12,9 @@ import (
 )
 
 func handle(w http.ResponseWriter, r *http.Request) {
-	reqURL := r.URL.String()
-	reqURL = reqURL[1:]
+	reqURL := r.URL.String()[1:]
+
+	//remove _escaped_fragment_
 
 	if reqURL == "" {
 		w.WriteHeader(http.StatusBadRequest)
@@ -28,6 +29,12 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	r.URL.Path = reqURL
+
+	//remove _escaped_fragment_
+	r.URL.Query().Del("_escaped_fragment_")
+
+	log.Printf("page navigate: %s\n", r.URL)
+
 
 	res, err := getData(r)
 	writeResult(res, err, w)
