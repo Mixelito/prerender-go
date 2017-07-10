@@ -6,9 +6,11 @@ import (
 	"net/url"
 	"time"
 	"strings"
+	"regexp"
+	"strconv"
 
 	log "github.com/Sirupsen/logrus"
-	"./render"
+	"github.com/Mixelito/prerender/render"
 	_ "github.com/Mixelito/prerender/cache"
 )
 
@@ -89,6 +91,53 @@ func writeResult(res *render.Result, err error, w http.ResponseWriter) {
 		w.Header().Add("Etag", res.Etag)
 	}
 	if res.HTML != "" {
+		//prerender-status-code
+		statusMatch, _ := regexp.Compile("<meta[^<>]*(?:name=['\"]prerender-status-code['\"][^<>]*content=['\"]([0-9]{3})['\"]|content=['\"]([0-9]{3})['\"][^<>]*name=['\"]prerender-status-code['\"])[^<>]*>")
+		headerMatch, _ := regexp.Compile("<meta[^<>]*(?:name=['\"]prerender-header['\"][^<>]*content=['\"]([^'\"]*?): ?([^'\"]*?)['\"]|content=['\"]([^'\"]*?): ?([^'\"]*?)['\"][^<>]*name=['\"]prerender-header['\"])[^<>]*>")
+		head := strings.Split(res.HTML,"</head>")[0]
+
+		var match2 [][]string = headerMatch.FindAllStringSubmatch(head, -1)
+		if match2 != nil {
+			for index, element := range match2 {
+				_ = index
+				var headerName string
+				var headerValue string
+
+				if element[1]!="" {
+					headerName = element[1]
+				} else if element[3]!="" {
+					headerName = element[3]
+				}
+
+				if element[2]!="" {
+					headerValue = element[2]
+				} else if element[4]!="" {
+					headerValue = element[4]
+				}
+
+				w.Header().Add(headerName, headerValue)
+				res.HTML = strings.Replace(res.HTML, element[0], "", -1)
+			}
+		}
+
+		var match []string = statusMatch.FindStringSubmatch(head)
+		if match != nil {
+			var finalMatch string
+			if match[1]!="" {
+				finalMatch = match[1]
+			} else if match[2]!="" {
+				finalMatch = match[2]
+			}
+
+			statusCode, err := strconv.ParseInt(finalMatch, 10, 64)
+			_ = err
+			if statusCode != 0 && statusCode != 200 {
+				w.WriteHeader(int(statusCode))
+			}
+			res.HTML = strings.Replace(res.HTML, match[0], "", -1)
+		}
+
 		fmt.Fprint(w, res.HTML)
+
 	}
 }

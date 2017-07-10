@@ -144,6 +144,7 @@ func (r *chromeRenderer) Render(url string) (*Result, error) {
 		"sb.scorecardresearch.com",
 		"www.googletagservices.com",
 		"px.mooba.com.br",
+		"data:image",
 		"*.ttf","*.eot","*.woff","*.woff2","*.jpg", "*.png", "*.gif",
 	}
 	if _, err = tab.Network.SetBlockedURLs(blockedUrls); err != nil {
@@ -157,7 +158,7 @@ func (r *chromeRenderer) Render(url string) (*Result, error) {
 	if _, err := tab.Network.EnableWithParams(networkParams); err != nil {
 		log.Fatal("error enabling network")
 	}
-
+	
 	select {
 	case <-time.After(r.timeout):
 		return nil, ErrPageLoadTimeout

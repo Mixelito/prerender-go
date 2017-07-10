@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"../render"
+	"github.com/Mixelito/prerender/render"
 	"github.com/go-redis/redis"
 	"github.com/pkg/errors"
 )
