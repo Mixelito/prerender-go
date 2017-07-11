@@ -12,6 +12,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/wirepair/gcd"
 	"github.com/wirepair/gcd/gcdapi"
+	"github.com/orcaman/concurrent-map"
+	"sync"
 )
 
 // ErrPageLoadTimeout is returned when the page did not fire the "load" event
@@ -67,6 +69,7 @@ func (r *chromeRenderer) SetPageLoadTimeout(t time.Duration) {
 
 func (r *chromeRenderer) Close() {
 	r.debugger.ExitProcess()
+	r.Close()
 }
 
 func (r *chromeRenderer) Render(req *http.Request) (*Result, error) {
@@ -76,42 +79,40 @@ func (r *chromeRenderer) Render(req *http.Request) (*Result, error) {
 	res := Result{URL: url}
 	var err error
 
+	var requests = cmap.New()
+	var requestsSuccess = cmap.New()
+	var lastRequestReceivedAt = time.Now()
+
+	const WAIT_AFTER_LAST_REQUEST = 500 * time.Millisecond
+	const PAGE_DONE_CHECK_INTERVAL = 500 * time.Millisecond
+	const PAGE_LOAD_TIMEOUT = 20 * time.Second
+
+	var wg sync.WaitGroup
+
 	tab, err := r.debugger.NewTab()
+	log.Printf("WAIT ADD!")
+	wg.Add(1)
 
 	if err != nil {
 		return nil, errors.Wrap(err, "creating new tab failed")
 	}
 	defer r.debugger.CloseTab(tab)
-	// tab.Debug(true)
+	//tab.Debug(true)
 
-	tab.Subscribe("Page.loadEventFired", func(target *gcd.ChromeTarget, v []byte) {
-		navigated <- true
-	})
+	tab.Network.SetUserAgentOverride(req.UserAgent() + " Prerender (+https://github.com/prerender/prerender)" )
+	r.debugger.SetTimeout(PAGE_LOAD_TIMEOUT)
 
-	tab.Subscribe("Network.responseReceived", func(target *gcd.ChromeTarget, v []byte) {
-		event := &gcdapi.NetworkResponseReceivedEvent{}
-		if err = json.Unmarshal(v, event); err != nil {
-			err = errors.Wrap(err, "getting network response failed")
-			//return
-		}
-		//log.Printf("finish url: %f - %s\n", event.Params.Response.Status, event.Params.Response.Url)
-
-		r := event.Params.Response
-		res.Status = int(r.Status)
-		if etag, ok := r.Headers["Etag"]; ok {
-			res.Etag = etag.(string)
-		}
-	})
-
-	if _, err = tab.Page.Enable(); err != nil {
-		return nil, errors.Wrap(err, "enabling tab page failed")
-	}
-	if _, err = tab.Network.Enable(-1, -1); err != nil {
-		return nil, errors.Wrap(err, "enabling tab network failed")
-	}
-	if _, err = tab.Page.Navigate(url, "", ""); err != nil {
-		return nil, errors.Wrap(err, "navigating to url failed: "+url)
-	}
+	/*
+	//TODO setVisibleSize
+	Emulation.setVisibleSize({
+				width: 1440,
+				height: 718
+			}, (err, res) => {
+				if (err) {
+					console.log('Unable to setVisibleSize of page on this version of Chrome. Make sure you are up to date.')
+				}
+			});
+	 */
 
 	var blockedUrls []string = []string{
 		"google-analytics.com",
@@ -145,11 +146,89 @@ func (r *chromeRenderer) Render(req *http.Request) (*Result, error) {
 		"sb.scorecardresearch.com",
 		"www.googletagservices.com",
 		"px.mooba.com.br",
-		"data:image",
+		"data:image*",
 		"*.ttf","*.eot","*.woff","*.woff2","*.jpg", "*.png", "*.gif",
 	}
 	if _, err = tab.Network.SetBlockedURLs(blockedUrls); err != nil {
 		return nil, errors.Wrap(err, "blocked urls failed: "+url)
+	}
+
+	/*
+	Quando a página principal e os seus elementos diretamente ligado forem carregados
+	 */
+	tab.Subscribe("Page.loadEventFired", func(target *gcd.ChromeTarget, v []byte) {
+		//log.Printf("DONE!")
+		wg.Done()
+	})
+
+	/*
+	Quando uma requisição entrar na fila de execução entra nesse evento
+	 */
+	//TODO Network.requestWillBeSent
+	tab.Subscribe("Network.requestWillBeSent", func(target *gcd.ChromeTarget, v []byte) {
+		event := &gcdapi.NetworkRequestWillBeSentEvent{}
+		if err = json.Unmarshal(v, event); err != nil {
+			err = errors.Wrap(err, "getting network response failed")
+			return
+		}
+
+		if event.Params.RequestId != "" && event.Params.RequestId != event.Params.LoaderId {
+			requests.Set(event.Params.RequestId, event.Params.Request.Url)
+			log.Printf("+%s %s\n", event.Params.Request.Url, event.Params.LoaderId)
+		}
+	})
+
+	/*
+	Quando cada requisição termina com resposta entra nesse evento
+	 */
+	//TODO Network.responseReceived
+	tab.Subscribe("Network.responseReceived", func(target *gcd.ChromeTarget, v []byte) {
+		event := &gcdapi.NetworkResponseReceivedEvent{}
+		if err = json.Unmarshal(v, event); err != nil {
+			err = errors.Wrap(err, "getting network response failed")
+			return
+		}
+
+		lastRequestReceivedAt = time.Now()
+		if event.Params.RequestId != event.Params.LoaderId {
+			requestsSuccess.Set(event.Params.RequestId, event.Params.Response.Url)
+			log.Printf("-%s\n", event.Params.Response.Url)
+		}
+
+		r := event.Params.Response
+		res.Status = int(r.Status)
+		if etag, ok := r.Headers["Etag"]; ok {
+			res.Etag = etag.(string)
+		}
+	})
+
+	/*
+	Quando uma requisição falha, normalmente por bloqueio de url entra nesse evento
+	 */
+	//TODO Network.loadingFailed
+	//when a redirect happens and we call Page.stopLoading,
+	//all outstanding requests will fire this event
+	tab.Subscribe("Network.loadingFailed", func(target *gcd.ChromeTarget, v []byte) {
+		event := &gcdapi.NetworkLoadingFailedEvent{}
+		if err = json.Unmarshal(v, event); err != nil {
+			err = errors.Wrap(err, "getting network response failed")
+			log.Printf("getting network response failed: %s", err)
+			return
+		}
+
+		requestsSuccess.Set(event.Params.RequestId, "empty")
+	})
+
+	if _, err = tab.Page.Enable(); err != nil {
+		return nil, errors.Wrap(err, "enabling tab page failed")
+	}
+	/*
+	if _, err = tab.Network.Enable(-1, -1); err != nil {
+		return nil, errors.Wrap(err, "enabling tab network failed")
+	}
+	*/
+	if _, err = tab.Page.Navigate(url, "", ""); err != nil {
+		return nil, errors.Wrap(err, "navigating to url failed: "+url)
 	}
 
 	networkParams := &gcdapi.NetworkEnableParams{
@@ -159,12 +238,43 @@ func (r *chromeRenderer) Render(req *http.Request) (*Result, error) {
 	if _, err := tab.Network.EnableWithParams(networkParams); err != nil {
 		log.Fatal("error enabling network")
 	}
-	
-	select {
-	case <-time.After(r.timeout):
-		return nil, ErrPageLoadTimeout
-	case <-navigated:
-	}
+
+	wg.Wait()
+	wg.Add(1)
+
+	_ = navigated
+	ticker := time.NewTicker(PAGE_DONE_CHECK_INTERVAL)
+	quit := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <- ticker.C:
+				//log.Printf("RUN!")
+				//log.Printf("numRequestsInFlight %d\n", numRequestsInFlight)
+				//log.Printf("numRequestsInFlight %d\n", requests.Keys())
+				//log.Printf("numRequestsInFlight %d\n", requestsSuccess.Keys())
+				//log.Printf("numRequestsInFlight %d:%d\n", requests.Count(), requestsSuccess.Count())
+				//log.Printf("numRequestsInFlight %s\n", requests)
+				//req.prerender.lastRequestReceivedAt < ((new Date()).getTime() - waitAfterLastRequest)
+				//if numRequestsInFlight <= 0 && lastRequestReceivedAt.Add(WAIT_AFTER_LAST_REQUEST).Before(time.Now()) {
+
+				if requests.Count()==requestsSuccess.Count() && lastRequestReceivedAt.Add(WAIT_AFTER_LAST_REQUEST).Before(time.Now()) {
+					ticker.Stop()
+					log.Printf("FINISH!")
+					//log.Printf("numRequestsInFlight %d\n", numRequestsInFlight)
+					wg.Done()
+				}
+			case <- quit:
+				log.Printf("STOP!")
+				ticker.Stop()
+				return
+			}
+		}
+	}()
+
+	wg.Wait()
+
+	log.Printf("PASSOU DO GO FUNC!")
 
 	// events may generate errors
 	if err != nil {
@@ -194,5 +304,6 @@ func (r *chromeRenderer) Render(req *http.Request) (*Result, error) {
 	}
 
 	res.Duration = time.Since(start)
+
 	return &res, nil
 }
