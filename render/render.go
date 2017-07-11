@@ -21,7 +21,7 @@ var ErrPageLoadTimeout = errors.New("timed out waiting for page load")
 // Renderer is the interface implemented by renderers capable of
 // fetching a webpage and returning the HTML after JavaScript has run
 type Renderer interface {
-	Render(string) (*Result, error)
+	Render(*http.Request) (*Result, error)
 	SetPageLoadTimeout(time.Duration)
 	Close()
 }
@@ -69,9 +69,10 @@ func (r *chromeRenderer) Close() {
 	r.debugger.ExitProcess()
 }
 
-func (r *chromeRenderer) Render(url string) (*Result, error) {
+func (r *chromeRenderer) Render(req *http.Request) (*Result, error) {
 	start := time.Now()
 	navigated := make(chan bool)
+	url := req.URL.String()
 	res := Result{URL: url}
 	var err error
 

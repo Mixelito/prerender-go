@@ -65,7 +65,7 @@ func getData(r *http.Request) (*render.Result, error) {
 	}
 
 	renderer := getRenderer(r.Context())
-	res, err := renderer.Render(r.URL.String())
+	res, err := renderer.Render(r)
 	if err == nil && res.Status == http.StatusOK && cache != nil {
 		err = cache.Save(res, 24*time.Hour)
 	}
