@@ -14,7 +14,6 @@ import (
 	"github.com/Mixelito/prerender/cache"
 	"github.com/Mixelito/prerender/render"
 	"github.com/felixge/httpsnoop"
-	"github.com/go-redis/redis"
 )
 
 func main() {
@@ -31,22 +30,11 @@ func main() {
 		}
 	}
 
-	redisAddr := os.Getenv("REDIS_URL")
-	if redisAddr == "" {
-		redisAddr = "redis://localhost:6379/0"
-	}
-	opts, err := redis.ParseURL(redisAddr)
-	if err != nil {
-		log.Fatal("error parsing redis url", err)
-	}
-	client := redis.NewClient(opts)
-	defer client.Close()
-
 	// a custom handler is necessary because ServeMux redirects // to /
 	// in all urls, regardless of escaping
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := setRenderer(r.Context(), renderer)
-		ctx = setCache(ctx, cache.NewCache(client))
+		ctx = setCache(ctx, cache.NewCache())
 		handle(w, r.WithContext(ctx))
 	})
 	wrappedHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
