@@ -113,6 +113,7 @@ func (r *chromeRenderer) Render(req *http.Request) (*Result, error) {
 				}
 			});
 	 */
+	
 
 	var blockedUrls []string = []string{
 		"google-analytics.com",
@@ -153,18 +154,12 @@ func (r *chromeRenderer) Render(req *http.Request) (*Result, error) {
 		return nil, errors.Wrap(err, "blocked urls failed: "+url)
 	}
 
-	/*
-	Quando a página principal e os seus elementos diretamente ligado forem carregados
-	 */
+	//when the main page and its directly connected elements are loaded
 	tab.Subscribe("Page.loadEventFired", func(target *gcd.ChromeTarget, v []byte) {
-		//log.Printf("DONE!")
 		wg.Done()
 	})
 
-	/*
-	Quando uma requisição entrar na fila de execução entra nesse evento
-	 */
-	//TODO Network.requestWillBeSent
+	//when a request enters the execution queue here
 	tab.Subscribe("Network.requestWillBeSent", func(target *gcd.ChromeTarget, v []byte) {
 		event := &gcdapi.NetworkRequestWillBeSentEvent{}
 		if err = json.Unmarshal(v, event); err != nil {
@@ -174,14 +169,10 @@ func (r *chromeRenderer) Render(req *http.Request) (*Result, error) {
 
 		if event.Params.RequestId != "" && event.Params.RequestId != event.Params.LoaderId {
 			requests.Set(event.Params.RequestId, event.Params.Request.Url)
-			log.Printf("+%s %s\n", event.Params.Request.Url, event.Params.LoaderId)
 		}
 	})
 
-	/*
-	Quando cada requisição termina com resposta entra nesse evento
-	 */
-	//TODO Network.responseReceived
+	//when each request ends with a response, enter this event
 	tab.Subscribe("Network.responseReceived", func(target *gcd.ChromeTarget, v []byte) {
 		event := &gcdapi.NetworkResponseReceivedEvent{}
 		if err = json.Unmarshal(v, event); err != nil {
@@ -192,27 +183,22 @@ func (r *chromeRenderer) Render(req *http.Request) (*Result, error) {
 		lastRequestReceivedAt = time.Now()
 		if event.Params.RequestId != event.Params.LoaderId {
 			requestsSuccess.Set(event.Params.RequestId, event.Params.Response.Url)
-			log.Printf("-%s\n", event.Params.Response.Url)
-		}
-
-		r := event.Params.Response
-		res.Status = int(r.Status)
-		if etag, ok := r.Headers["Etag"]; ok {
-			res.Etag = etag.(string)
+		}else{
+			r := event.Params.Response
+			res.Status = int(r.Status)
+			if etag, ok := r.Headers["Etag"]; ok {
+				res.Etag = etag.(string)
+			}
 		}
 	})
 
-	/*
-	Quando uma requisição falha, normalmente por bloqueio de url entra nesse evento
-	 */
-	//TODO Network.loadingFailed
+	//when a request fails, usually through url blocking it enters this event
 	//when a redirect happens and we call Page.stopLoading,
 	//all outstanding requests will fire this event
 	tab.Subscribe("Network.loadingFailed", func(target *gcd.ChromeTarget, v []byte) {
 		event := &gcdapi.NetworkLoadingFailedEvent{}
 		if err = json.Unmarshal(v, event); err != nil {
 			err = errors.Wrap(err, "getting network response failed")
-			log.Printf("getting network response failed: %s", err)
 			return
 		}
 
@@ -222,11 +208,6 @@ func (r *chromeRenderer) Render(req *http.Request) (*Result, error) {
 	if _, err = tab.Page.Enable(); err != nil {
 		return nil, errors.Wrap(err, "enabling tab page failed")
 	}
-	/*
-	if _, err = tab.Network.Enable(-1, -1); err != nil {
-		return nil, errors.Wrap(err, "enabling tab network failed")
-	}
-	*/
 	if _, err = tab.Page.Navigate(url, "", ""); err != nil {
 		return nil, errors.Wrap(err, "navigating to url failed: "+url)
 	}
@@ -249,23 +230,12 @@ func (r *chromeRenderer) Render(req *http.Request) (*Result, error) {
 		for {
 			select {
 			case <- ticker.C:
-				//log.Printf("RUN!")
-				//log.Printf("numRequestsInFlight %d\n", numRequestsInFlight)
-				//log.Printf("numRequestsInFlight %d\n", requests.Keys())
-				//log.Printf("numRequestsInFlight %d\n", requestsSuccess.Keys())
 				//log.Printf("numRequestsInFlight %d:%d\n", requests.Count(), requestsSuccess.Count())
-				//log.Printf("numRequestsInFlight %s\n", requests)
-				//req.prerender.lastRequestReceivedAt < ((new Date()).getTime() - waitAfterLastRequest)
-				//if numRequestsInFlight <= 0 && lastRequestReceivedAt.Add(WAIT_AFTER_LAST_REQUEST).Before(time.Now()) {
-
-				if requests.Count()==requestsSuccess.Count() && lastRequestReceivedAt.Add(WAIT_AFTER_LAST_REQUEST).Before(time.Now()) {
+				if requests.Count()<=requestsSuccess.Count() && lastRequestReceivedAt.Add(WAIT_AFTER_LAST_REQUEST).Before(time.Now()) {
 					ticker.Stop()
-					log.Printf("FINISH!")
-					//log.Printf("numRequestsInFlight %d\n", numRequestsInFlight)
 					wg.Done()
 				}
 			case <- quit:
-				log.Printf("STOP!")
 				ticker.Stop()
 				return
 			}
@@ -273,8 +243,6 @@ func (r *chromeRenderer) Render(req *http.Request) (*Result, error) {
 	}()
 
 	wg.Wait()
-
-	log.Printf("PASSOU DO GO FUNC!")
 
 	// events may generate errors
 	if err != nil {
