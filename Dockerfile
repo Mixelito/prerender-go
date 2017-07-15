@@ -23,7 +23,7 @@ USER chrome
 
 # Point to correct chrome location
 ENV CHROME_PATH /usr/bin/google-chrome-unstable
-EXPOSE 8000
+EXPOSE 9090
 
 WORKDIR /go/src/app
 COPY . .
