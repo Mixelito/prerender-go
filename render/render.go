@@ -35,6 +35,7 @@ type Result struct {
 	Status   int
 	Etag     string
 	Duration time.Duration
+	Cached	 bool
 }
 
 type chromeRenderer struct {

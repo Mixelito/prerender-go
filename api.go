@@ -14,7 +14,7 @@ import (
 	_ "github.com/Mixelito/prerender/cache"
 )
 
-func handle(w http.ResponseWriter, r *http.Request) {
+func handle(w http.ResponseWriter, r *http.Request) (*render.Result) {
 	reqURL := r.URL.String()[1:]
 
 	//if decoded url has two query params from a decoded escaped fragment for hashbang URLs
@@ -25,7 +25,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 	if reqURL == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(w, "url is required")
-		return
+		return nil
 	}
 
 	reqURLFinal, err := url.QueryUnescape(reqURL)
@@ -37,7 +37,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 	if err != nil || !u.IsAbs() {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(w, "Invalid URL")
-		return
+		return nil
 	}
 
 	//http://www.example.com?_escaped_fragment_=key1=value1%26key2=value2
@@ -58,6 +58,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 
 	res, err := getData(r)
 	writeResult(res, err, w)
+	return res
 }
 
 func getData(r *http.Request) (*render.Result, error) {
@@ -65,6 +66,7 @@ func getData(r *http.Request) (*render.Result, error) {
 	if cache != nil && r.Method != "POST" {
 		res, err := cache.Check(r)
 		if err != nil || res != nil {
+			res.Cached = true
 			return res, err
 		}
 	}

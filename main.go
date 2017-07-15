@@ -18,6 +18,7 @@ import (
 
 func main() {
 	var renderer render.Renderer
+	var res *render.Result
 	var err error
 	renderer, err = render.NewRenderer()
 	if err != nil {
@@ -35,15 +36,17 @@ func main() {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := setRenderer(r.Context(), renderer)
 		ctx = setCache(ctx, cache.NewCache())
-		handle(w, r.WithContext(ctx))
+		res = handle(w, r.WithContext(ctx))
 	})
 	wrappedHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		m := httpsnoop.CaptureMetrics(handler, w, r)
 		log.WithFields(log.Fields{
 			"method":   r.Method,
 			"path":     r.URL.Path,
+			"cached":	res.Cached,
 			"status":   m.Code,
 			"duration": m.Duration.Nanoseconds(),
+			"seconds": m.Duration.String(),
 			"size":     m.Written,
 		}).Infof("Completed request")
 	})

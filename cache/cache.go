@@ -132,7 +132,6 @@ func (c *RedisCache) Save(res *render.Result, ttl time.Duration) error {
 }
 
 func (c *S3Cache) Check(r *http.Request) (*render.Result, error) {
-	log.Printf("CHECK %s", r.URL.String())
 	reader, err := c.client.GetObject(c.bucket, r.URL.String())
 	defer reader.Close()
 
@@ -163,7 +162,6 @@ func (c *S3Cache) Check(r *http.Request) (*render.Result, error) {
 
 func (c *S3Cache) Save(res *render.Result, ttl time.Duration) error {
 
-	log.Printf("SAVE %s", res.URL)
 	reader := strings.NewReader(res.HTML)
 
 	metadata := map[string][]string{
@@ -171,7 +169,6 @@ func (c *S3Cache) Save(res *render.Result, ttl time.Duration) error {
 		"Etag": []string{res.Etag},
 		"StorageClass": []string{"REDUCED_REDUNDANCY"},
 	}
-	log.Printf("METADATA %s", metadata)
 
 	n, err := c.client.PutObjectWithMetadata(c.bucket, res.URL, reader, metadata, nil)
 	_ = n
