@@ -89,7 +89,6 @@ func (r *chromeRenderer) Render(req *http.Request) (*Result, error) {
 	var wg sync.WaitGroup
 
 	tab, err := r.debugger.NewTab()
-	log.Printf("WAIT ADD!")
 	wg.Add(1)
 
 	if err != nil {
