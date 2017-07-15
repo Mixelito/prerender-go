@@ -1,0 +1,18 @@
+{
+  "AWSEBDockerrunVersion": 2,
+  "containerDefinitions": [
+    {
+      "essential": true,
+      "name": "prerender",
+      "portMappings": [
+        {
+          "containerPort": 9090,
+          "hostPort": 9090
+        }
+      ],
+      "privileged": true
+    }
+  ],
+  "family": "",
+  "volumes": []
+}

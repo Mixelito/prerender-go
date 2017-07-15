@@ -14,6 +14,8 @@ RUN apt-get update && apt-get install -y \
 	--no-install-recommends \
 	&& rm -rf /var/lib/apt/lists/*
 
+#RUN google-chrome-unstable --version
+
 # Add Chrome as a user
 RUN groupadd -r chrome && useradd -r -g chrome -G audio,video chrome \
     && mkdir -p /home/chrome && chown -R chrome:chrome /home/chrome
@@ -23,7 +25,9 @@ USER chrome
 
 # Point to correct chrome location
 ENV CHROME_PATH /usr/bin/google-chrome-unstable
-EXPOSE 8000
+ENV PORT 9090
+
+EXPOSE 9090
 
 WORKDIR /go/src/app
 COPY . .
