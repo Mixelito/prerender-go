@@ -1,0 +1,20 @@
+{
+  "AWSEBDockerrunVersion": 2,
+  "containerDefinitions": [
+    {
+      "essential": true,
+      "image": "mixelito/go-prerender-chrome-headless",
+      "name": "prerender",
+      "memory": 1536,
+      "portMappings": [
+        {
+          "containerPort": 9090,
+          "hostPort": 9090
+        }
+      ],
+      "privileged": true
+    }
+  ],
+  "family": "",
+  "volumes": []
+}
