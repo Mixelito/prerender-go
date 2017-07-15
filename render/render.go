@@ -69,7 +69,6 @@ func (r *chromeRenderer) SetPageLoadTimeout(t time.Duration) {
 
 func (r *chromeRenderer) Close() {
 	r.debugger.ExitProcess()
-	r.Close()
 }
 
 func (r *chromeRenderer) Render(req *http.Request) (*Result, error) {
