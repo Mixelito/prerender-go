@@ -1,7 +1,3 @@
-```
-docker run --privileged -p 9090:9090 {image}
-```
-
 # Prerender [![Build Status](https://travis-ci.org/brycekahle/prerender.svg?branch=master)](https://travis-ci.org/brycekahle/prerender)
 
 Prerender exposes a simple API that will pre-render webpages and return them. This is primarily useful for SEO purposes as search engines prefer full pages instead of the shells used by many single page apps (SPAs).
