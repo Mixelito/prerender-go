@@ -28,7 +28,12 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, err := url.Parse(reqURL)
+	reqURLFinal, err := url.QueryUnescape(reqURL)
+	if err != nil {
+		reqURLFinal = reqURL
+	}
+
+	u, err := url.Parse(reqURLFinal)
 	if err != nil || !u.IsAbs() {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(w, "Invalid URL")
