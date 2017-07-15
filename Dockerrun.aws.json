@@ -6,6 +6,44 @@
       "image": "mixelito/go-prerender-chrome-headless",
       "name": "prerender",
       "memory": 1536,
+      "environment": [
+        {
+          "name": "CACHE",
+          "value": "${DEPLOYEBENVPARAMS_PARAMS_CACHE}"
+        },
+        {
+          "name": "PORT",
+          "value": "${DEPLOYEBENVPARAMS_PARAMS_PORT}"
+        },
+        {
+          "name": "AWS_ACCESS_KEY_ID",
+          "value": "${DEPLOYEBENVPARAMS_PARAMS_AWS_ACCESS_KEY_ID}"
+        },
+        {
+          "name": "AWS_SECRET_ACCESS_KEY",
+          "value": "${DEPLOYEBENVPARAMS_PARAMS_AWS_SECRET_ACCESS_KEY}"
+        },
+        {
+          "name": "REDIS_URL",
+          "value": "${DEPLOYEBENVPARAMS_PARAMS_REDIS_URL}"
+        },
+        {
+          "name": "RENDER_TIMEOUT",
+          "value": "${DEPLOYEBENVPARAMS_PARAMS_RENDER_TIMEOUT}"
+        },
+        {
+          "name": "WAIT_AFTER_LAST_REQUEST",
+          "value": "${DEPLOYEBENVPARAMS_PARAMS_WAIT_AFTER_LAST_REQUEST}"
+        },
+        {
+          "name": "PAGE_DONE_CHECK_INTERVAL",
+          "value": "${DEPLOYEBENVPARAMS_PARAMS_PAGE_DONE_CHECK_INTERVAL}"
+        },
+        {
+          "name": "PAGE_LOAD_TIMEOUT",
+          "value": "${DEPLOYEBENVPARAMS_PARAMS_PAGE_LOAD_TIMEOUT}"
+        }
+      ],
       "portMappings": [
         {
           "containerPort": 9090,
