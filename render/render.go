@@ -218,7 +218,7 @@ func (r *chromeRenderer) Render(req *http.Request) (*Result, error) {
 		log.Fatal("error enabling network")
 	}
 
-	time.AfterFunc(PAGE_LOAD_TIMEOUT, func(){
+	stopLoading := time.AfterFunc(PAGE_LOAD_TIMEOUT, func(){
 		if _, err = tab.Page.StopLoading(); err != nil {
 			//log.Fatal("error stop loading: "+err.Error())
 			log.Printf("error stop loading: %s : %s", err, url)
@@ -246,6 +246,7 @@ func (r *chromeRenderer) Render(req *http.Request) (*Result, error) {
 				//log.Printf("numRequestsInFlight %d:%d\n", requests.Count(), requestsSuccess.Count())
 				if requests.Count()<=requestsSuccess.Count() && lastRequestReceivedAt.Add(WAIT_AFTER_LAST_REQUEST).Before(time.Now()) {
 					ticker.Stop()
+					stopLoading.Stop()
 					wg.Done()
 				}
 			case <- quit:
