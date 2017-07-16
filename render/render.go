@@ -221,7 +221,7 @@ func (r *chromeRenderer) Render(req *http.Request) (*Result, error) {
 	time.AfterFunc(PAGE_LOAD_TIMEOUT, func(){
 		if _, err = tab.Page.StopLoading(); err != nil {
 			//log.Fatal("error stop loading: "+err.Error())
-			log.Printf("error stop loading: %s", err)
+			log.Printf("error stop loading: %s : %s", err, url)
 		}
 		wg.Done()
 		res.Status = http.StatusGatewayTimeout
