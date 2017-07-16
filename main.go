@@ -46,7 +46,7 @@ func main() {
 			"cached":	res.Cached,
 			"status":   m.Code,
 			"duration": m.Duration.Nanoseconds(),
-			"seconds": m.Duration.String(),
+			"durationH": m.Duration.String(),
 			"size":     m.Written,
 		}).Infof("Completed request")
 	})

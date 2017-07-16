@@ -20,6 +20,10 @@ import (
 // before the timeout expired
 var ErrPageLoadTimeout = errors.New("timed out waiting for page load")
 
+const WAIT_AFTER_LAST_REQUEST = 400 * time.Millisecond
+const PAGE_DONE_CHECK_INTERVAL = 200 * time.Millisecond
+const PAGE_LOAD_TIMEOUT = 20 * time.Second
+
 // Renderer is the interface implemented by renderers capable of
 // fetching a webpage and returning the HTML after JavaScript has run
 type Renderer interface {
@@ -60,7 +64,7 @@ func NewRenderer() (Renderer, error) {
 
 	return &chromeRenderer{
 		debugger: debugger,
-		timeout:  60 * time.Second,
+		timeout:  PAGE_LOAD_TIMEOUT,
 	}, nil
 }
 
@@ -83,10 +87,6 @@ func (r *chromeRenderer) Render(req *http.Request) (*Result, error) {
 	var requestsSuccess = cmap.New()
 	var lastRequestReceivedAt = time.Now()
 
-	const WAIT_AFTER_LAST_REQUEST = 500 * time.Millisecond
-	const PAGE_DONE_CHECK_INTERVAL = 500 * time.Millisecond
-	const PAGE_LOAD_TIMEOUT = 20 * time.Second
-
 	var wg sync.WaitGroup
 
 	tab, err := r.debugger.NewTab()
@@ -98,8 +98,7 @@ func (r *chromeRenderer) Render(req *http.Request) (*Result, error) {
 	defer r.debugger.CloseTab(tab)
 	//tab.Debug(true)
 
-	tab.Network.SetUserAgentOverride(req.UserAgent() + " Prerender (+https://github.com/prerender/prerender)" )
-	r.debugger.SetTimeout(PAGE_LOAD_TIMEOUT)
+	tab.Network.SetUserAgentOverride(req.UserAgent() + " Prerender (+https://github.com/Mixelito/prerender)" )
 
 	/*
 	//TODO setVisibleSize
@@ -219,7 +218,20 @@ func (r *chromeRenderer) Render(req *http.Request) (*Result, error) {
 		log.Fatal("error enabling network")
 	}
 
+	time.AfterFunc(PAGE_LOAD_TIMEOUT, func(){
+		if _, err = tab.Page.StopLoading(); err != nil {
+			log.Fatal("error stop loading")
+		}
+		wg.Done()
+		res.Status = http.StatusGatewayTimeout
+	})
+
 	wg.Wait()
+
+	if res.Status==http.StatusGatewayTimeout {
+		return &res, nil
+	}
+
 	wg.Add(1)
 
 	_ = navigated
