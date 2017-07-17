@@ -89,16 +89,16 @@ func (r *chromeRenderer) Render(req *http.Request) (*Result, error) {
 
 	var wg sync.WaitGroup
 
-	tab, err := r.debugger.NewTab()
+	tab := startTarget(r.debugger)
 	wg.Add(1)
 
 	if err != nil {
 		return nil, errors.Wrap(err, "creating new tab failed")
 	}
 	defer r.debugger.CloseTab(tab)
-	//tab.Debug(true)
 
-	tab.Network.SetUserAgentOverride(req.UserAgent() + " Prerender (+https://github.com/Mixelito/prerender)" )
+	network := tab.Network
+	page := tab.Page
 
 	/*
 	//TODO setVisibleSize
@@ -111,7 +111,6 @@ func (r *chromeRenderer) Render(req *http.Request) (*Result, error) {
 				}
 			});
 	 */
-	
 
 	var blockedUrls []string = []string{
 		"google-analytics.com",
@@ -152,11 +151,6 @@ func (r *chromeRenderer) Render(req *http.Request) (*Result, error) {
 		return nil, errors.Wrap(err, "blocked urls failed: "+url)
 	}
 
-	//when the main page and its directly connected elements are loaded
-	tab.Subscribe("Page.loadEventFired", func(target *gcd.ChromeTarget, v []byte) {
-		wg.Done()
-	})
-
 	//when a request enters the execution queue here
 	tab.Subscribe("Network.requestWillBeSent", func(target *gcd.ChromeTarget, v []byte) {
 		event := &gcdapi.NetworkRequestWillBeSentEvent{}
@@ -174,8 +168,9 @@ func (r *chromeRenderer) Render(req *http.Request) (*Result, error) {
 	tab.Subscribe("Network.responseReceived", func(target *gcd.ChromeTarget, v []byte) {
 		event := &gcdapi.NetworkResponseReceivedEvent{}
 		if err = json.Unmarshal(v, event); err != nil {
-			err = errors.Wrap(err, "getting network response failed")
-			return
+			//err = errors.Wrap(err, "getting network response failed")
+			//return
+			log.Printf("getting network response failed: %s", err)
 		}
 
 		lastRequestReceivedAt = time.Now()
@@ -203,24 +198,31 @@ func (r *chromeRenderer) Render(req *http.Request) (*Result, error) {
 		requestsSuccess.Set(event.Params.RequestId, "empty")
 	})
 
-	if _, err = tab.Page.Enable(); err != nil {
-		return nil, errors.Wrap(err, "enabling tab page failed")
-	}
-	if _, err = tab.Page.Navigate(url, "", ""); err != nil {
-		return nil, errors.Wrap(err, "navigating to url failed: "+url)
+	//when the main page and its directly connected elements are loaded
+	tab.Subscribe("Page.loadEventFired", func(target *gcd.ChromeTarget, v []byte) {
+		wg.Done()
+	})
+	/*
+	tab.Subscribe("Page.domContentEventFired", func(target *gcd.ChromeTarget, v []byte) {
+		wg.Done()
+	})
+	*/
+
+	//set header x-prerender
+	if _, err = network.SetExtraHTTPHeaders(map[string]interface{}{"X-Prerender": "1"}); err != nil {
+		log.Printf("error extra http header: %s", err)
 	}
 
-	networkParams := &gcdapi.NetworkEnableParams{
-		MaxTotalBufferSize:    -1,
-		MaxResourceBufferSize: -1,
+	if _, err = network.SetUserAgentOverride(req.UserAgent()); err != nil {
+		log.Printf("error change user agent: %s", err)
 	}
-	if _, err := tab.Network.EnableWithParams(networkParams); err != nil {
-		log.Fatal("error enabling network")
+
+	if _, err = page.Navigate(url, "", ""); err != nil {
+		return nil, errors.Wrap(err, "navigating to url failed: "+url)
 	}
 
 	stopLoading := time.AfterFunc(PAGE_LOAD_TIMEOUT, func(){
 		if _, err = tab.Page.StopLoading(); err != nil {
-			//log.Fatal("error stop loading: "+err.Error())
 			log.Printf("error stop loading: %s : %s", err, url)
 		}else{
 			wg.Done()
@@ -243,7 +245,7 @@ func (r *chromeRenderer) Render(req *http.Request) (*Result, error) {
 		for {
 			select {
 			case <- ticker.C:
-				//log.Printf("numRequestsInFlight %d:%d\n", requests.Count(), requestsSuccess.Count())
+				//printRequestsInFlight(requests, requestsSuccess)
 				if requests.Count()<=requestsSuccess.Count() && lastRequestReceivedAt.Add(WAIT_AFTER_LAST_REQUEST).Before(time.Now()) {
 					ticker.Stop()
 					stopLoading.Stop()
@@ -288,4 +290,40 @@ func (r *chromeRenderer) Render(req *http.Request) (*Result, error) {
 	res.Duration = time.Since(start)
 
 	return &res, nil
+}
+
+func startTarget(debugger *gcd.Gcd) *gcd.ChromeTarget {
+	target, err := debugger.NewTab()
+	if err != nil {
+		log.Fatalf("error getting new tab: %s\n", err)
+	}
+	//target.Debug(true)
+	//target.DebugEvents(true)
+	target.DOM.Enable()
+	target.Page.Enable()
+	//target.Network.Enable(-1, -1)
+	//target.Debugger.Enable()
+
+	networkParams := &gcdapi.NetworkEnableParams{
+		//MaxTotalBufferSize:    -1,
+		//MaxResourceBufferSize: -1,
+	}
+	if _, err := target.Network.EnableWithParams(networkParams); err != nil {
+		log.Fatal("error enabling network")
+	}
+	return target
+
+}
+
+func printRequestsInFlight(requests cmap.ConcurrentMap, success cmap.ConcurrentMap) {
+	log.Printf("numRequestsInFlight %d:%d\n", requests.Count(), success.Count())
+
+	requests.Items()
+	for index, element := range requests.Items() {
+		tmp, ok := success.Get(index)
+		_ = tmp
+		if ok == false {
+			log.Printf("InFlight: %s - %s", index, element)
+		}
+	}
 }
