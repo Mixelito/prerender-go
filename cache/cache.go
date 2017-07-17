@@ -14,6 +14,7 @@ import (
 	"log"
 	"bytes"
 	"strings"
+	"unicode/utf8"
 )
 
 type RedisCache struct {
@@ -132,7 +133,8 @@ func (c *RedisCache) Save(res *render.Result, ttl time.Duration) error {
 }
 
 func (c *S3Cache) Check(r *http.Request) (*render.Result, error) {
-	reader, err := c.client.GetObject(c.bucket, r.URL.String())
+	url := toUtf8(r.URL.String())
+	reader, err := c.client.GetObject(c.bucket, url)
 	defer reader.Close()
 
 	//info
@@ -163,6 +165,7 @@ func (c *S3Cache) Check(r *http.Request) (*render.Result, error) {
 func (c *S3Cache) Save(res *render.Result, ttl time.Duration) error {
 
 	reader := strings.NewReader(res.HTML)
+	url := toUtf8(res.URL)
 
 	metadata := map[string][]string{
 		"Content-Type": []string{"text/html"},
@@ -170,11 +173,29 @@ func (c *S3Cache) Save(res *render.Result, ttl time.Duration) error {
 		"StorageClass": []string{"REDUCED_REDUNDANCY"},
 	}
 
-	n, err := c.client.PutObjectWithMetadata(c.bucket, res.URL, reader, metadata, nil)
+	n, err := c.client.PutObjectWithMetadata(c.bucket, url, reader, metadata, nil)
 	_ = n
 	if err != nil {
 		log.Fatalln(err)
 	}
 
 	return err
+}
+
+//Object name with non UTF-8 strings are not supported
+func toUtf8(url string) (string) {
+	if !utf8.ValidString(url) {
+		v := make([]rune, 0, len(url))
+		for i, r := range url {
+			if r == utf8.RuneError {
+				_, size := utf8.DecodeRuneInString(url[i:])
+				if size == 1 {
+					continue
+				}
+			}
+			v = append(v, r)
+		}
+		url = string(v)
+	}
+	return url
 }
