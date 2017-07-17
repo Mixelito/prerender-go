@@ -47,6 +47,7 @@ func main() {
 			"status":   m.Code,
 			"duration": m.Duration.Nanoseconds(),
 			"durationH": m.Duration.String(),
+			"userAgent": r.Header.Get("user-agent"),
 			"size":     m.Written,
 		}).Infof("Completed request")
 	})
