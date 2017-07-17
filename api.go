@@ -144,6 +144,21 @@ func writeResult(res *render.Result, err error, w http.ResponseWriter) {
 			res.HTML = strings.Replace(res.HTML, match[0], "", -1)
 		}
 
+		//removeScriptTags
+		scriptMatch := regexp.MustCompile(`(?i)<script(?:.*?)>(?:[\S\s]*?)<\/script>`)
+		var match3 [][]string = scriptMatch.FindAllStringSubmatch(res.HTML, -1)
+		if match3 != nil {
+			for index, element := range match3 {
+				_ = index
+				for index2, element2 := range element {
+					_ = element2
+					if strings.Index(element[index2], "application/ld+json") == -1 {
+						res.HTML = strings.Replace(res.HTML, element[index2], "", -1)
+					}
+				}
+			}
+		}
+
 		fmt.Fprint(w, res.HTML)
 
 	}
