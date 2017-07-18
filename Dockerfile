@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y \
 	&& curl -sSL https://dl.google.com/linux/linux_signing_key.pub | apt-key add - \
 	&& echo "deb [arch=amd64] https://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
 	&& apt-get update && apt-get install -y \
-	google-chrome \
+	google-chrome-beta \
 	--no-install-recommends \
 	&& rm -rf /var/lib/apt/lists/*
 
@@ -22,7 +22,7 @@ RUN groupadd -r chrome && useradd -r -g chrome -G audio,video chrome \
 USER chrome
 
 # Point to correct chrome location
-ENV CHROME_PATH /usr/bin/google-chrome
+ENV CHROME_PATH /usr/bin/google-chrome-beta
 ENV PORT 9090
 EXPOSE 9090
 
