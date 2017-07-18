@@ -315,11 +315,7 @@ func startTarget(debugger *gcd.Gcd) *gcd.ChromeTarget {
 		log.Fatal("error enabling network")
 	}
 
-	targets, _ := debugger.GetTargets()
-	log.Printf( "%s", len(targets) )
-
 	return target
-
 }
 
 func printRequestsInFlight(requests cmap.ConcurrentMap, success cmap.ConcurrentMap) {
