@@ -1,0 +1,25 @@
+version: '3'
+services:
+  lb:
+    image: dockercloud/haproxy
+    links:
+      - prerender
+    ports:
+      - 8000:80
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  prerender:
+    image: mixelito/go-prerender-chrome-headless
+    #build: .
+    privileged: true
+    links:
+      - redis
+    environment:
+      - 'CACHE:redis'
+      - 'REDIS_URL=redis://redis:6379/0'
+
+  redis:
+    image: redis:alpine
+    ports:
+      - 6380:6379
