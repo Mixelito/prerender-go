@@ -234,6 +234,8 @@ func (r *chromeRenderer) Render(req *http.Request) (*Result, error) {
 	tab.Unsubscribe("Page.loadEventFired")
 
 	if res.Status==http.StatusGatewayTimeout {
+		stopLoading.Stop()
+		res.Duration = time.Since(start)
 		return &res, nil
 	}
 
