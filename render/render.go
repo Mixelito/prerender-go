@@ -59,12 +59,19 @@ func NewRenderer() (Renderer, error) {
 	debugger.SetTerminationHandler(func(reason string) {
 		log.Printf("chrome termination: %s\n", reason)
 	})
-	debugger.AddFlags([]string{"--headless", "--disable-gpu"})
+	debugger.AddFlags([]string{"--headless", "--disable-gpu", "--no-sandbox", "--single-process", "--remote-debugging-port=9222"})
 	debugger.StartProcess(chromePath, os.TempDir(), "9222")
+
+	var timeout time.Duration
+	if os.Getenv("PAGE_LOAD_TIMEOUT") != "" {
+		timeout, _ = time.ParseDuration(os.Getenv("PAGE_LOAD_TIMEOUT")+"s")
+	}else {
+		timeout = PAGE_LOAD_TIMEOUT
+	}
 
 	return &chromeRenderer{
 		debugger: debugger,
-		timeout:  PAGE_LOAD_TIMEOUT,
+		timeout:  timeout,
 	}, nil
 }
 
@@ -220,7 +227,7 @@ func (r *chromeRenderer) Render(req *http.Request) (*Result, error) {
 		return nil, errors.Wrap(err, "navigating to url failed: "+url)
 	}
 
-	stopLoading := time.AfterFunc(PAGE_LOAD_TIMEOUT, func(){
+	stopLoading := time.AfterFunc(r.timeout, func(){
 		if _, err = tab.Page.StopLoading(); err != nil {
 			log.Printf("error stop loading: %s : %s", err, url)
 		}else{
