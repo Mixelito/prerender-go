@@ -88,7 +88,6 @@ func (r *chromeRenderer) Render(req *http.Request) (*Result, error) {
 	var lastRequestReceivedAt = time.Now()
 
 	var wg sync.WaitGroup
-
 	tab := startTarget(r.debugger)
 	wg.Add(1)
 
@@ -271,6 +270,10 @@ func (r *chromeRenderer) Render(req *http.Request) (*Result, error) {
 	// page load event but no network response, assume bad DNS
 	if res.Status == 0 {
 		res.Status = http.StatusNotFound
+	}
+
+	if res.Status == http.StatusNotModified {
+		res.Status = http.StatusOK
 	}
 
 	if res.Status == http.StatusOK {
