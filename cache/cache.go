@@ -15,6 +15,8 @@ import (
 	"bytes"
 	"strings"
 	"unicode/utf8"
+	"crypto/sha1"
+	"encoding/hex"
 )
 
 type RedisCache struct {
@@ -133,7 +135,7 @@ func (c *RedisCache) Save(res *render.Result, ttl time.Duration) error {
 }
 
 func (c *S3Cache) Check(r *http.Request) (*render.Result, error) {
-	url := toUtf8(r.URL.String())
+	url := validateUrl(r.URL.String())
 	reader, err := c.client.GetObject(c.bucket, url)
 	defer reader.Close()
 
@@ -165,7 +167,7 @@ func (c *S3Cache) Check(r *http.Request) (*render.Result, error) {
 func (c *S3Cache) Save(res *render.Result, ttl time.Duration) error {
 
 	reader := strings.NewReader(res.HTML)
-	url := toUtf8(res.URL)
+	url := validateUrl(res.URL)
 
 	metadata := map[string][]string{
 		"Content-Type": []string{"text/html"},
@@ -183,7 +185,8 @@ func (c *S3Cache) Save(res *render.Result, ttl time.Duration) error {
 }
 
 //Object name with non UTF-8 strings are not supported
-func toUtf8(url string) (string) {
+//Object name cannot be greater than 1024 characters
+func validateUrl(url string) (string){
 	if !utf8.ValidString(url) {
 		v := make([]rune, 0, len(url))
 		for i, r := range url {
@@ -196,6 +199,12 @@ func toUtf8(url string) (string) {
 			v = append(v, r)
 		}
 		url = string(v)
+	}
+	if len(url) > 1024 {
+		h := sha1.New()
+		h.Write([]byte(url))
+		sha1_hash := hex.EncodeToString(h.Sum(nil))
+		url = url[0:(1024-len(sha1_hash))] + sha1_hash
 	}
 	return url
 }
