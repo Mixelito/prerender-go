@@ -231,6 +231,7 @@ func (r *chromeRenderer) Render(req *http.Request) (*Result, error) {
 	})
 
 	wg.Wait()
+	tab.Unsubscribe("Page.loadEventFired")
 
 	if res.Status==http.StatusGatewayTimeout {
 		return &res, nil
@@ -311,6 +312,10 @@ func startTarget(debugger *gcd.Gcd) *gcd.ChromeTarget {
 	if _, err := target.Network.EnableWithParams(networkParams); err != nil {
 		log.Fatal("error enabling network")
 	}
+
+	targets, _ := debugger.GetTargets()
+	log.Printf( "%s", len(targets) )
+
 	return target
 
 }
