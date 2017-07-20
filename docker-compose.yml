@@ -1,8 +1,9 @@
 version: '3'
 services:
-  prerender:
-    image: mixelito/go-prerender-chrome-headless
-    #build: .
+  prerender_go:
+#    image: mixelito/go-prerender-chrome-headless
+    build: .
     privileged: true
     ports:
       - 9090:9090
+    env_file: .env
