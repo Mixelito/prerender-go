@@ -64,7 +64,7 @@ func NewRenderer() (Renderer, error) {
 
 	var timeout time.Duration
 	if os.Getenv("PAGE_LOAD_TIMEOUT") != "" {
-		timeout, _ = time.ParseDuration(os.Getenv("PAGE_LOAD_TIMEOUT")+"s")
+		timeout, _ = time.ParseDuration(os.Getenv("PAGE_LOAD_TIMEOUT")+"ms")
 	}else {
 		timeout = PAGE_LOAD_TIMEOUT
 	}
