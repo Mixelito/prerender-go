@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
+	_"os/signal"
+	_"syscall"
 	"time"
 
-	"context"
+	_"context"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/Mixelito/prerender/cache"
@@ -60,6 +60,7 @@ func main() {
 	log.Printf("listening on %s", l)
 	server := http.Server{Addr: l, Handler: wrappedHandler}
 
+	/*
 	go func() {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
@@ -68,7 +69,9 @@ func main() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		server.Shutdown(ctx)
+
 	}()
+	*/
 
 	err = server.ListenAndServe()
 	if err != http.ErrServerClosed {
