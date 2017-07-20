@@ -46,6 +46,14 @@
         {
           "name": "PAGE_LOAD_TIMEOUT",
           "value": "${DEPLOYEBENVPARAMS_PARAMS_PAGE_LOAD_TIMEOUT}"
+        },
+        {
+          "name": "PLUGIN_STATUS_CODE",
+          "value": "${DEPLOYEBENVPARAMS_PARAMS_PLUGIN_STATUS_CODE}"
+        },
+        {
+          "name": "PAGE_LOAD_TIMEOUT",
+          "value": "${DEPLOYEBENVPARAMS_PARAMS_PLUGIN_SCRIPT_TAGS}"
         }
       ],
       "portMappings": [

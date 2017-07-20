@@ -6,7 +6,7 @@ before_script:
   - sudo apt-get update -qq
   - sudo apt-get install google-chrome-beta -y
 language: go
-go: 1.8.1
+go: 1.8.3
 install: make deps
 script: make all
 env:
