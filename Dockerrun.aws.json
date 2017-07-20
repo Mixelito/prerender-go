@@ -52,7 +52,7 @@
           "value": "${DEPLOYEBENVPARAMS_PARAMS_PLUGIN_STATUS_CODE}"
         },
         {
-          "name": "PAGE_LOAD_TIMEOUT",
+          "name": "PLUGIN_SCRIPT_TAGS",
           "value": "${DEPLOYEBENVPARAMS_PARAMS_PLUGIN_SCRIPT_TAGS}"
         }
       ],
