@@ -59,7 +59,7 @@ func NewRenderer() (Renderer, error) {
 	debugger.SetTerminationHandler(func(reason string) {
 		log.Printf("chrome termination: %s\n", reason)
 	})
-	debugger.AddFlags([]string{"--headless", "--disable-gpu", "--no-sandbox", "--single-process", "--remote-debugging-port=9222"})
+	debugger.AddFlags([]string{"--headless", "--disable-gpu"})
 	debugger.StartProcess(chromePath, os.TempDir(), "9222")
 
 	var timeout time.Duration
