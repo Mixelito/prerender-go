@@ -14,17 +14,9 @@ import (
 	"github.com/Mixelito/prerender/cache"
 	"github.com/Mixelito/prerender/render"
 	"github.com/felixge/httpsnoop"
-	"github.com/newrelic/go-agent"
 )
 
 func main() {
-
-	config := newrelic.NewConfig("Prerender Chrome Headless", os.Getenv("NEWRELIC_KEY"))
-	appNewrelic, errNewrelic := newrelic.NewApplication(config)
-	_ = errNewrelic
-	_ = appNewrelic
-
-
 	var renderer render.Renderer
 	var res *render.Result
 	var err error
@@ -59,11 +51,6 @@ func main() {
 			"size":     m.Written,
 		}).Infof("Completed request")
 	})
-
-	if errNewrelic == nil {
-		http.HandleFunc(newrelic.WrapHandleFunc(appNewrelic, "/", handler))
-	}
-
 
 	port := os.Getenv("PORT")
 	if port == "" {
